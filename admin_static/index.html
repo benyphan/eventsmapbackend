@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLocation — Админка</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: #f3f4f6; color: #1f2937; }
+  header { background: #111827; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 18px; font-weight: 700; }
+  header .user { font-size: 13px; color: #9ca3af; }
+  #login { max-width: 380px; margin: 60px auto; background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+  #login h2 { margin-bottom: 16px; font-size: 20px; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); margin-bottom: 20px; }
+  .stats { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); flex: 1; min-width: 150px; }
+  .stat .num { font-size: 28px; font-weight: 800; color: #FF4458; }
+  .stat .label { font-size: 13px; color: #6b7280; margin-top: 4px; }
+  input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
+  label { font-size: 13px; color: #374151; display: block; margin-bottom: 4px; }
+  button { padding: 10px 16px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: #FF4458; color: #fff; }
+  .btn-secondary { background: #e5e7eb; color: #374151; }
+  .btn-danger { background: #dc2626; color: #fff; }
+  .btn-success { background: #16a34a; color: #fff; }
+  .btn-small { padding: 6px 10px; font-size: 12px; border-radius: 6px; margin-right: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+  th { color: #6b7280; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .badge.published { background: #dcfce7; color: #166534; }
+  .badge.pending { background: #fef9c3; color: #854d0e; }
+  .badge.pending_moderation { background: #fef9c3; color: #854d0e; }
+  .badge.rejected { background: #fee2e2; color: #991b1b; }
+  .badge.draft { background: #e5e7eb; color: #374151; }
+  .badge.cancelled, .badge.finished { background: #e5e7eb; color: #374151; }
+  .badge.user, .badge.active { background: #e0e7ff; color: #3730a3; }
+  .badge.admin { background: #fce7f3; color: #9d174d; }
+  .badge.moderator { background: #ede9fe; color: #5b21b6; }
+  .badge.banned { background: #fee2e2; color: #991b1b; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tabs button { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+  .tabs button.active { background: #111827; color: #fff; border-color: #111827; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .hidden { display: none; }
+  #main { padding: 24px; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: #f3f4f6; }
+  .post-thumb { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: #f3f4f6; cursor: pointer; }
+  .post-thumb:hover { outline: 2px solid #FF4458; }
+  #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; z-index: 100; flex-direction: column; }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 92vw; max-height: 82vh; border-radius: 8px; }
+  #lightbox .lb-counter { color: #d1d5db; font-size: 14px; margin-top: 12px; }
+  #lightbox .lb-close { position: absolute; top: 16px; right: 20px; background: none; border: none; color: #fff; font-size: 30px; cursor: pointer; line-height: 1; }
+  #lightbox .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.12); color: #fff; border: none; font-size: 34px; width: 52px; height: 52px; border-radius: 50%; cursor: pointer; }
+  #lightbox .lb-nav:hover { background: rgba(255,255,255,0.25); }
+  #lightbox .lb-prev { left: 16px; }
+  #lightbox .lb-next { right: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MLocation Админка</h1>
+  <div class="user" id="headerUser"></div>
+</header>
+
+<div id="login" class="card">
+  <h2>Вход для администратора</h2>
+  <label>Email</label>
+  <input id="loginEmail" type="email" placeholder="admin@example.com" autocomplete="username">
+  <label>Пароль</label>
+  <input id="loginPass" type="password" placeholder="••••••" autocomplete="current-password">
+  <button class="btn-primary" style="width:100%" onclick="doLogin()">Войти</button>
+  <p id="loginError" style="color:#dc2626;font-size:13px;margin-top:10px"></p>
+</div>
+
+<div id="main" class="hidden">
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs">
+    <button class="active" onclick="showTab('events')">Мероприятия</button>
+    <button onclick="showTab('users')">Пользователи</button>
+    <button onclick="showTab('posts')">Посты</button>
+    <button onclick="showTab('create')">Создать мероприятие</button>
+    <button onclick="logout()">Выйти</button>
+  </div>
+
+  <div id="tab-events" class="tab-panel">
+    <div class="card" style="margin-bottom:14px">
+      <div class="row">
+        <select id="eventStatusFilter" style="width:auto;margin:0" onchange="loadEvents()">
+          <option value="">Все статусы</option>
+          <option value="pending_moderation">На модерации</option>
+          <option value="published">Опубликованы</option>
+          <option value="rejected">Отклонены</option>
+          <option value="draft">Черновики</option>
+          <option value="cancelled">Отменены</option>
+          <option value="finished">Завершены</option>
+        </select>
+        <button class="btn-secondary btn-small" onclick="loadEvents()">Обновить</button>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th></th><th>Название</th><th>Категория</th><th>Адрес</th><th>Начало</th><th>Статус</th><th>Действия</th></tr></thead>
+        <tbody id="eventsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-users" class="tab-panel hidden">
+    <div class="card">
+      <table>
+        <thead><tr><th></th><th>Имя</th><th>Email</th><th>Роль</th><th>Статус</th><th>Действия</th></tr></thead>
+        <tbody id="usersBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-posts" class="tab-panel hidden">
+    <div class="card" style="margin-bottom:14px">
+      <div class="row">
+        <select id="postStatusFilter" style="width:auto;margin:0" onchange="loadPosts()">
+          <option value="pending">На модерации</option>
+          <option value="published">Опубликованы</option>
+          <option value="rejected">Отклонены</option>
+          <option value="">Все</option>
+        </select>
+        <button class="btn-secondary btn-small" onclick="loadPosts()">Обновить</button>
+      </div>
+    </div>
+    <div class="card" id="postsList"></div>
+  </div>
+
+  <div id="tab-create" class="tab-panel hidden">
+    <div class="grid">
+      <div class="card">
+        <h3 style="margin-bottom:14px">Новое мероприятие</h3>
+        <label>Название *</label>
+        <input id="evTitle">
+        <label>Категория</label>
+        <input id="evCategory" placeholder="например: Встреча">
+        <label>Описание</label>
+        <textarea id="evDesc" rows="3"></textarea>
+        <label>Адрес</label>
+        <input id="evAddress" placeholder="ул. Тверская, 1">
+        <div class="row">
+          <div style="flex:1"><label>Широта</label><input id="evLat" placeholder="55.751244"></div>
+          <div style="flex:1"><label>Долгота</label><input id="evLng" placeholder="37.618423"></div>
+        </div>
+        <label>Дата и время начала *</label>
+        <input id="evStart" type="datetime-local">
+        <button class="btn-primary" onclick="createEvent()">Создать и опубликовать</button>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:14px">Подсказка по координатам</h3>
+        <p style="font-size:14px;color:#4b5563;line-height:1.6">
+          Открой <a href="https://yandex.ru/maps" target="_blank">Яндекс.Карты</a> или
+          <a href="https://maps.google.com" target="_blank">Google Maps</a>, кликни правой кнопкой в нужное место
+          и скопируй координаты (широта, долгота). Если не получается — оставь поля пустыми, и мы поставим
+          координаты по умолчанию (центр Москвы).
+        </p>
+        <p style="font-size:14px;color:#4b5563;line-height:1.6;margin-top:12px">
+          После создания мероприятие можно проверить на карте в приложении или в разделе «Мероприятия» выше.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div id="lightbox">
+  <button class="lb-close" onclick="closeLightbox()">&times;</button>
+  <button class="lb-nav lb-prev" id="lbPrev" onclick="lbMove(-1)">&#10094;</button>
+  <img id="lbImg" alt="">
+  <button class="lb-nav lb-next" id="lbNext" onclick="lbMove(1)">&#10095;</button>
+  <div class="lb-counter" id="lbCounter"></div>
+</div>
+<script>
+var TOKEN = localStorage.getItem("admin_token") || "";
+var API = "";
+
+function toast(msg) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(function(){ t.classList.remove("show"); }, 2500);
+}
+
+function api(path, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign({}, opts.headers || {});
+  if (TOKEN) opts.headers.Authorization = "Bearer " + TOKEN;
+  if (opts.body && typeof opts.body !== "string") {
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(opts.body);
+  }
+  return fetch(API + path, opts).then(function(res) {
+    if (res.status === 401) { logout(); throw new Error("Требуется вход"); }
+    return res.json().then(function(data) {
+      if (!res.ok) throw new Error(data.detail || "Ошибка запроса");
+      return data;
+    });
+  });
+}
+
+function doLogin() {
+  var email = document.getElementById("loginEmail").value.trim();
+  var pass = document.getElementById("loginPass").value;
+  var err = document.getElementById("loginError");
+  err.textContent = "";
+  api("/auth/login", { method: "POST", body: { email: email, password: pass } })
+    .then(function(data) {
+      TOKEN = data.access_token;
+      localStorage.setItem("admin_token", TOKEN);
+      document.getElementById("login").classList.add("hidden");
+      document.getElementById("main").classList.remove("hidden");
+      document.getElementById("headerUser").textContent = email;
+      init();
+    })
+    .catch(function(e) { err.textContent = e.message; });
+}
+
+function logout() {
+  TOKEN = "";
+  localStorage.removeItem("admin_token");
+  document.getElementById("login").classList.remove("hidden");
+  document.getElementById("main").classList.add("hidden");
+  document.getElementById("loginPass").value = "";
+}
+
+function showTab(name) {
+  document.querySelectorAll(".tab-panel").forEach(function(p){ p.classList.add("hidden"); });
+  document.getElementById("tab-" + name).classList.remove("hidden");
+  document.querySelectorAll(".tabs button").forEach(function(b){ b.classList.remove("active"); });
+  var btns = document.querySelectorAll(".tabs button");
+  var idx = name === "events" ? 0 : name === "users" ? 1 : name === "posts" ? 2 : 3;
+  if (btns[idx]) btns[idx].classList.add("active");
+  if (name === "events") loadEvents();
+  if (name === "users") loadUsers();
+  if (name === "posts") loadPosts();
+}
+
+function fmtDT(iso) {
+  if (!iso) return "";
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString("ru-RU", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+}
+
+function loadStats() {
+  api("/admin/stats").then(function(s) {
+    var el = document.getElementById("stats");
+    el.innerHTML =
+      stat(s.users_total, "Пользователей") +
+      stat(s.events_total, "Мероприятий") +
+      stat(s.events_by_status.pending_moderation || 0, "На модерации") +
+      stat(s.events_by_status.published || 0, "Опубликовано") +
+      stat(s.reports_open, "Открытых жалоб");
+  }).catch(function(e){ toast(e.message); });
+}
+function stat(n, label) {
+  return '<div class="stat"><div class="num">' + n + '</div><div class="label">' + label + '</div></div>';
+}
+
+function loadEvents() {
+  var status = document.getElementById("eventStatusFilter").value;
+  var q = status ? "?status=" + status : "";
+  api("/admin/events" + q).then(function(events) {
+    var body = document.getElementById("eventsBody");
+    if (!events.length) { body.innerHTML = '<tr><td colspan="7" style="color:#6b7280">Нет мероприятий</td></tr>'; return; }
+    body.innerHTML = events.map(function(ev) {
+      var badge = '<span class="badge ' + ev.status + '">' + ruStatus(ev.status) + '</span>';
+      var mod = ev.status !== "published"
+        ? '<button class="btn-success btn-small" onclick="moderate(\'' + ev.id + '\',\'published\')">Опубликовать</button>'
+        : '<button class="btn-danger btn-small" onclick="moderate(\'' + ev.id + '\',\'rejected\')">Отклонить</button>';
+      var note = ev.moderation_note
+        ? '<div style="margin-top:6px;color:#b45309;font-size:13px">⚠ ' + esc(ev.moderation_note) + '</div>'
+        : '';
+      return '<tr>' +
+        '<td><img class="avatar" src="' + (ev.cover_image_url || "") + '" onerror="this.style.visibility=\'hidden\'"></td>' +
+        '<td><b>' + esc(ev.title) + '</b>' +
+        '<div style="color:#6b7280;font-size:12px">от ' + esc(ev.owner_name || ev.owner_id) + '</div>' + note + '</td>' +
+        '<td>' + esc(ev.category || "") + '</td>' +
+        '<td>' + esc(ev.address || "") + '</td>' +
+        '<td>' + fmtDT(ev.start_at) + '</td>' +
+        '<td>' + badge + '</td>' +
+        '<td>' + mod + '<button class="btn-secondary btn-small" onclick="toggleDetails(\'' + ev.id + '\')">Подробнее</button><button class="btn-danger btn-small" onclick="delEvent(\'' + ev.id + '\')">Удалить</button></td>' +
+        '<td id="details-' + ev.id + '" class="hidden" colspan="7" style="background:#f9fafb">' + detailsHtml(ev) + '</td>' +
+        '</tr>';
+    }).join("");
+  }).catch(function(e){ toast(e.message); });
+}
+
+function detailsHtml(ev) {
+  var c = ev.criteria || {};
+  var parts = [];
+  if (c.gender) parts.push("Пол: " + c.gender);
+  if (c.min_age || c.max_age) parts.push("Возраст: " + (c.min_age || "0") + "-" + (c.max_age || "∞"));
+  if (c.nationality) parts.push("Национальность: " + c.nationality);
+  if (c.subculture) parts.push("Субкультура: " + c.subculture);
+  if (c.interests && c.interests.length) parts.push("Интересы: " + c.interests.join(", "));
+  return '<div style="font-size:14px;line-height:1.7">' +
+    '<b>Описание:</b> ' + esc(ev.description || "—") + '<br>' +
+    '<b>Координаты:</b> ' + ev.lat + ', ' + ev.lng + '<br>' +
+    '<b>Участники:</b> ' + (ev.participant_count || 0) + ' из ' + (ev.max_participants || "без лимита") + '<br>' +
+    '<b>Видимость:</b> ' + ev.visibility + '<br>' +
+    '<b>Статус:</b> ' + ruStatus(ev.status) +
+    (parts.length ? '<br><b>Критерии:</b> ' + esc(parts.join("; ")) : '') +
+    '<br><b>ID:</b> ' + ev.id +
+    '</div>';
+}
+
+function toggleDetails(id) {
+  var el = document.getElementById("details-" + id);
+  if (!el) return;
+  el.classList.toggle("hidden");
+}
+
+function loadUsers() {
+  api("/admin/users").then(function(users) {
+    var body = document.getElementById("usersBody");
+    if (!users.length) { body.innerHTML = '<tr><td colspan="6" style="color:#6b7280">Нет пользователей</td></tr>'; return; }
+    body.innerHTML = users.map(function(u) {
+      var roleBadge = '<span class="badge ' + u.role + '">' + u.role + '</span>';
+      var statusBadge = '<span class="badge ' + u.status + '">' + u.status + '</span>';
+      var roleSel = '<select onchange="setRole(\'' + u.id + '\', this.value)" style="width:auto;margin:0">' +
+        '<option ' + (u.role === "user" ? "selected" : "") + ' value="user">user</option>' +
+        '<option ' + (u.role === "moderator" ? "selected" : "") + ' value="moderator">moderator</option>' +
+        '<option ' + (u.role === "admin" ? "selected" : "") + ' value="admin">admin</option>' +
+        '</select>';
+      var banBtn = u.status !== "banned"
+        ? '<button class="btn-danger btn-small" onclick="setBan(\'' + u.id + '\',\'banned\')">Заблокировать</button>'
+        : '<button class="btn-success btn-small" onclick="setBan(\'' + u.id + '\',\'active\')">Разблокировать</button>';
+      return '<tr>' +
+        '<td><img class="avatar" src="' + (u.avatar_url || "") + '" onerror="this.style.visibility=\'hidden\'"></td>' +
+        '<td><b>' + esc(u.name) + '</b></td>' +
+        '<td>' + esc(u.email || u.phone || "") + '</td>' +
+        '<td>' + roleBadge + '</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td>' + roleSel + ' ' + banBtn + '</td>' +
+        '</tr>';
+    }).join("");
+  }).catch(function(e){ toast(e.message); });
+}
+
+function loadPosts() {
+  var status = document.getElementById("postStatusFilter").value;
+  var q = status ? "?status=" + status : "";
+  api("/admin/posts" + q).then(function(posts) {
+    var el = document.getElementById("postsList");
+    if (!posts.length) { el.innerHTML = '<p style="color:#6b7280">Нет постов</p>'; return; }
+    el.innerHTML = '<table><thead><tr><th>Автор</th><th>Текст</th><th>Фото</th><th>Время</th><th>Статус</th><th>Причина</th><th>Действия</th></tr></thead><tbody>' +
+      posts.map(function(p) {
+        var badge = '<span class="badge ' + (p.moderation_status === "published" ? "published" : p.moderation_status) + '">' + ruPostStatus(p.moderation_status) + '</span>';
+        var images = (p.image_urls && p.image_urls.length) ? p.image_urls : (p.image_url ? [p.image_url] : []);
+        var thumbs = images.length
+          ? '<div style="display:flex;gap:4px;flex-wrap:wrap;max-width:200px">' + images.map(function(u, i) {
+              return '<img class="post-thumb" src="' + u + '" title="Открыть" onclick="openLightbox(' + esc(JSON.stringify(images)) + ',' + i + ')" onerror="this.style.visibility=\'hidden\'">';
+            }).join("") + '</div>'
+          : '—';
+        var note = p.moderation_note
+          ? '<span style="color:#b45309;font-size:12px">' + esc(p.moderation_note) + '</span>'
+          : '—';
+        var actions = '';
+        if (p.moderation_status !== "published") {
+          actions += '<button class="btn-success btn-small" onclick="moderatePost(\'' + p.id + '\',\'published\')">Опубликовать</button>';
+        }
+        if (p.moderation_status !== "rejected") {
+          actions += '<button class="btn-danger btn-small" onclick="moderatePost(\'' + p.id + '\',\'rejected\')">Отклонить</button>';
+        }
+        return '<tr>' +
+          '<td><b>' + esc(p.user_name || p.user_id) + '</b></td>' +
+          '<td>' + esc(p.text) + '</td>' +
+          '<td>' + thumbs + '</td>' +
+          '<td>' + fmtDT(p.created_at) + '</td>' +
+          '<td>' + badge + '</td>' +
+          '<td>' + note + '</td>' +
+          '<td>' + actions + '</td>' +
+          '</tr>';
+      }).join("") + '</tbody></table>';
+  }).catch(function(e){ toast(e.message); });
+}
+
+function moderatePost(id, status) {
+  api("/admin/posts/" + id + "/moderate", { method: "PATCH", body: { status: status } })
+    .then(function(){ toast("Готово"); loadPosts(); loadStats(); })
+    .catch(function(e){ toast(e.message); });
+}
+
+function ruPostStatus(s) {
+  return { published: "Опубликован", pending: "На модерации", rejected: "Отклонён" }[s] || s;
+}
+
+function moderate(id, status) {
+  api("/admin/events/" + id + "/moderate", { method: "PATCH", body: { status: status } })
+    .then(function(){ toast("Готово"); loadEvents(); loadStats(); })
+    .catch(function(e){ toast(e.message); });
+}
+function delEvent(id) {
+  if (!confirm("Удалить мероприятие?")) return;
+  api("/admin/events/" + id, { method: "DELETE" })
+    .then(function(){ toast("Удалено"); loadEvents(); loadStats(); })
+    .catch(function(e){ toast(e.message); });
+}
+function setRole(id, role) {
+  api("/admin/users/" + id + "/role", { method: "PATCH", body: { role: role } })
+    .then(function(){ toast("Роль обновлена"); loadUsers(); })
+    .catch(function(e){ toast(e.message); loadUsers(); });
+}
+function setBan(id, status) {
+  api("/admin/users/" + id + "/ban", { method: "PATCH", body: { status: status } })
+    .then(function(){ toast("Готово"); loadUsers(); })
+    .catch(function(e){ toast(e.message); });
+}
+
+function createEvent() {
+  var lat = parseFloat(document.getElementById("evLat").value);
+  var lng = parseFloat(document.getElementById("evLng").value);
+  if (isNaN(lat)) lat = 55.751244;
+  if (isNaN(lng)) lng = 37.618423;
+  var startRaw = document.getElementById("evStart").value;
+  if (!startRaw) { toast("Укажи дату начала"); return; }
+  var payload = {
+    title: document.getElementById("evTitle").value.trim(),
+    category: document.getElementById("evCategory").value.trim() || null,
+    description: document.getElementById("evDesc").value.trim() || null,
+    address: document.getElementById("evAddress").value.trim() || null,
+    lat: lat, lng: lng,
+    start_at: new Date(startRaw).toISOString()
+  };
+  if (!payload.title) { toast("Укажи название"); return; }
+  api("/events/", { method: "POST", body: payload })
+    .then(function(ev) {
+      toast("Создано! ID: " + ev.id.slice(0, 8));
+      return api("/admin/events/" + ev.id + "/moderate", { method: "PATCH", body: { status: "published" } });
+    })
+    .then(function(){ toast("Создано и опубликовано"); loadStats(); })
+    .catch(function(e){ toast(e.message); });
+}
+
+function esc(s) {
+  if (!s) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function ruStatus(s) {
+  return { published: "Опубликовано", pending_moderation: "На модерации", rejected: "Отклонено",
+           draft: "Черновик", cancelled: "Отменено", finished: "Завершено" }[s] || s;
+}
+
+function init() { loadStats(); loadEvents(); }
+
+var lbList = [];
+var lbIndex = 0;
+
+function openLightbox(urls, index) {
+  lbList = urls;
+  lbIndex = index || 0;
+  document.getElementById("lightbox").classList.add("open");
+  updateLightbox();
+}
+function closeLightbox() {
+  document.getElementById("lightbox").classList.remove("open");
+}
+function updateLightbox() {
+  var img = document.getElementById("lbImg");
+  img.src = lbList[lbIndex];
+  document.getElementById("lbCounter").textContent = (lbIndex + 1) + " / " + lbList.length;
+  document.getElementById("lbPrev").style.visibility = lbList.length > 1 ? "visible" : "hidden";
+  document.getElementById("lbNext").style.visibility = lbList.length > 1 ? "visible" : "hidden";
+}
+function lbMove(dir) {
+  lbIndex = (lbIndex + dir + lbList.length) % lbList.length;
+  updateLightbox();
+}
+document.addEventListener("keydown", function(e) {
+  if (!document.getElementById("lightbox").classList.contains("open")) return;
+  if (e.key === "Escape") closeLightbox();
+  if (e.key === "ArrowLeft") lbMove(-1);
+  if (e.key === "ArrowRight") lbMove(1);
+});
+document.getElementById("lightbox").addEventListener("click", function(e) {
+  if (e.target.id === "lightbox") closeLightbox();
+});
+
+(function() {
+  if (TOKEN) {
+    api("/users/me").then(function(me) {
+      document.getElementById("login").classList.add("hidden");
+      document.getElementById("main").classList.remove("hidden");
+      document.getElementById("headerUser").textContent = me.email + " (" + me.role + ")";
+      init();
+    }).catch(function(){ logout(); });
+  }
+})();
+</script>
+</body>
+</html>
