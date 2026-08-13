@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models, schemas, auth
+from app.routers.friends import _are_friends
 from app.routers.notifications import send_notification
 
 router = APIRouter(prefix="/shop", tags=["shop"])
@@ -123,6 +124,12 @@ def gift_item(
     )
     if not recipient:
         raise HTTPException(status_code=404, detail="Получатель не найден")
+
+    policy = recipient.gifts_policy or "all"
+    if policy == "none":
+        raise HTTPException(status_code=400, detail="Пользователь не принимает подарки")
+    if policy == "friends" and not _are_friends(db, current_user.id, recipient.id):
+        raise HTTPException(status_code=400, detail="Подарки можно отправлять только друзьям")
 
     if (current_user.credits or 0) < item.price:
         raise HTTPException(status_code=400, detail="Недостаточно кредитов")

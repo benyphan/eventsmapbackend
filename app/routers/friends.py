@@ -21,6 +21,7 @@ def _friend_out(r: models.FriendRequest) -> schemas.FriendRequestOut:
         from_user_name=r.from_user.name if r.from_user else None,
         to_user_name=r.to_user.name if r.to_user else None,
         from_user_avatar=r.from_user.avatar_url if r.from_user else None,
+        to_user_avatar=r.to_user.avatar_url if r.to_user else None,
     )
 
 

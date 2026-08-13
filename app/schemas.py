@@ -38,6 +38,7 @@ class UserOut(BaseModel):
     active_decoration_name: Optional[str] = None
     active_decoration_emoji: Optional[str] = None
     gifts_visibility: str = "all"
+    gifts_policy: str = "all"
 
 
 class GiftOut(BaseModel):
@@ -71,6 +72,7 @@ class UserPublicOut(BaseModel):
     active_decoration_name: Optional[str] = None
     active_decoration_emoji: Optional[str] = None
     gifts_visibility: str = "all"
+    gifts_policy: str = "all"
     gifts: List[GiftOut] = []
 
 
@@ -172,6 +174,7 @@ class EventOut(BaseModel):
     distance_m: Optional[int] = None
     criteria: Optional[EventCriteriaOut] = None
     tags: Optional[List[str]] = None
+    archived: Optional[bool] = False
 
 
 # ---------- Participants ----------
@@ -252,6 +255,7 @@ class FriendRequestOut(BaseModel):
     from_user_name: Optional[str] = None
     to_user_name: Optional[str] = None
     from_user_avatar: Optional[str] = None
+    to_user_avatar: Optional[str] = None
 
 
 # ---------- Search ----------

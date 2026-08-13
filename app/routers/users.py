@@ -181,6 +181,7 @@ def update_me(
     e2e_public_key: str | None = None,
     messages_policy: str | None = None,
     gifts_visibility: str | None = None,
+    gifts_policy: str | None = None,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -214,6 +215,10 @@ def update_me(
         if gifts_visibility not in ("all", "friends", "nobody"):
             raise HTTPException(status_code=400, detail="Недопустимое значение gifts_visibility")
         current_user.gifts_visibility = gifts_visibility
+    if gifts_policy is not None:
+        if gifts_policy not in ("all", "friends", "none"):
+            raise HTTPException(status_code=400, detail="Недопустимое значение gifts_policy")
+        current_user.gifts_policy = gifts_policy
     db.commit()
     db.refresh(current_user)
     return current_user

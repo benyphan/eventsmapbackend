@@ -53,6 +53,7 @@ def _participant_out(p: models.EventParticipant, me_id: Optional[str] = None) ->
 def _with_current_user(event: models.Event, user_id: Optional[str]) -> models.Event:
     """Подмешивает флаги текущего пользователя для ответа клиенту."""
     event.is_owner = user_id is not None and event.owner_id == user_id
+    event.archived = (event.end_at or event.start_at) <= datetime.utcnow()
     event.my_participant_status = None
     if user_id:
         for p in event.participants:
@@ -200,7 +201,6 @@ def my_events(
         .filter(
             (models.Event.owner_id == current_user.id)
             | (models.EventParticipant.user_id == current_user.id),
-            func.coalesce(models.Event.end_at, models.Event.start_at) > datetime.utcnow(),
         )
         .order_by(models.Event.start_at.desc())
         .all()
@@ -216,8 +216,6 @@ def get_event(
 ):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
-        raise HTTPException(status_code=404, detail="Мероприятие не найдено")
-    if (event.end_at or event.start_at) <= datetime.utcnow():
         raise HTTPException(status_code=404, detail="Мероприятие не найдено")
     return _with_current_user(event, current_user.id)
 
@@ -254,7 +252,7 @@ def join_event(
     if not event or event.status != models.EventStatus.published:
         raise HTTPException(status_code=404, detail="Мероприятие не найдено")
     if (event.end_at or event.start_at) <= datetime.utcnow():
-        raise HTTPException(status_code=404, detail="Мероприятие не найдено")
+        raise HTTPException(status_code=400, detail="Мероприятие уже завершилось")
     if event.owner_id == current_user.id:
         raise HTTPException(status_code=400, detail="Вы организатор этого мероприятия")
 
